@@ -1,0 +1,86 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/kiff-cecs.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build",
+            "stopAtEntry": false,
+            //"externalConsole": true,
+        },
+        {
+            "name": "Debug Tests",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/zig-out/bin/test",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build tests",
+            "stopAtEntry": false,
+        },
+        // {
+        //     "name": "Run Benchmarks",
+        //     "type": "cppvsdbg",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/libs/kmath/zig-out/bin/benchmark",
+        //     "args": [],
+        //     "cwd": "${workspaceFolder}",
+        //     "preLaunchTask": "build benchmarks",
+        //     "stopAtEntry": false,
+        //     //"externalConsole": true,
+        // },
+        // {
+        //     "name": "Zig Debug Tests",
+        //     "type": "cppvsdbg",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/zig-out/bin/path_tracer.exe",
+        //     "args": [],
+        //     "stopAtEntry": false,
+        //     "cwd": "${workspaceFolder}/zig-out/bin",
+        //     "environment": [],
+        //     "preLaunchTask": "Zig Build Test Debug"
+        // },
+        // // {
+        //     "name": "Zig Debug",
+        //     "type": "cppvsdbg",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/zig-out/bin/path_tracer.exe",
+        //     "args": [],
+        //     "stopAtEntry": false,
+        //     "cwd": "${workspaceFolder}",
+        //     "environment": [],
+        //     "preLaunchTask": "Zig Build Debug"
+        // },
+        // {
+        //     "name": "Zig Debug LLDB",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/zig-out/bin/path_tracer.exe",
+        //     "args": [],
+        //     "cwd": "${workspaceFolder}",
+        //     "breakpointMode": "path",
+        //     "preLaunchTask": "Zig Build Debug",
+        //     "env" :
+        //     {
+        //         "LLDB_USE_NATIVE_PDB_READER": "yes"
+        //     }
+        // },
+        // {
+        //     "name": "Zig Debug LLDB Stand Alone",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/zig-out/bin/path_tracer.exe",            
+        //     "preLaunchTask": "build",
+        //     "cwd": "${workspaceFolder}",
+        //     // "stopOnEntry": false, 
+        //     // "env" :
+        //     // {
+        //     //     "LLDB_USE_NATIVE_PDB_READER": "yes"
+        //     // }           
+        // }
+    ]
+}
