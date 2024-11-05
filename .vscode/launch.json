@@ -5,7 +5,7 @@
             "name": "Debug",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/zig-out/bin/kiff-cecs.exe",
+            "program": "${workspaceFolder}/zig-out/bin/kiff-ecce.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build",
