@@ -60,6 +60,4 @@ test "init ecce and add components"
     try std.testing.expectEqual(world.entities.values().len, 2);
     try std.testing.expectEqual(world.components.entries.player_components.values().len, 2);
     try std.testing.expectEqual(world.components.entries.health_components.values().len, 2);
-    
-    try std.testing.expect(true);
 }
