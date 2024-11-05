@@ -114,11 +114,11 @@ pub fn create_component_register(component_infos: []const ComponentInfo) type
     return ComponentRegister;
 }
 
-pub fn create_cecs(component_types: []const type) type
+pub fn create_ecce(component_types: []const type) type
 {
     const component_infos = comptime generate_component_infos(component_types);
 
-    const CECS = struct 
+    const ecce = struct 
     {
         const Self = @This();
         const ComponentRegister = create_component_register(&component_infos);
@@ -182,7 +182,7 @@ pub fn create_cecs(component_types: []const type) type
         }
     };
 
-    return CECS;
+    return ecce;
 }
 
 fn generate_component_infos(component_types: []const type) [component_types.len]ComponentInfo
@@ -210,7 +210,7 @@ fn hash_type_name_64(type_name: []const u8) u64 {
     return hash;
 }
 
-test "init cecs" 
+test "init ecce" 
 {
     var alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer alloc.deinit();
@@ -226,47 +226,47 @@ test "init cecs"
         Health,
     };
 
-    const CECS = comptime create_cecs(&component_types);
+    const ECCE = comptime create_ecce(&component_types);
 
-    var cecs = CECS.new(&alloc.allocator());    
-    defer cecs.deinit();
+    var ecce = ECCE.new(&alloc.allocator());    
+    defer ecce.deinit();
 
-    const entity1: Entity = try cecs.add_entity();
+    const entity1: Entity = try ecce.add_entity();
     {
-        const player1 = Player { .id = cecs.components.entries.player_components.values().len, .entity = entity1, .data = PlayerData { .id = 42, .name = "Guy" } };
-        const health1 = Health { .id = cecs.components.entries.health_components.values().len, .entity = entity1, .data = HealthData { .value = 100 } };
-        try cecs.add_component(entity1, player1);
-        try cecs.add_component(entity1, health1);
+        const player1 = Player { .id = ecce.components.entries.player_components.values().len, .entity = entity1, .data = PlayerData { .id = 42, .name = "Guy" } };
+        const health1 = Health { .id = ecce.components.entries.health_components.values().len, .entity = entity1, .data = HealthData { .value = 100 } };
+        try ecce.add_component(entity1, player1);
+        try ecce.add_component(entity1, health1);
 
-        try std.testing.expectEqual(2, cecs.entities.get(entity1).?.values().len);
-        try std.testing.expectEqual(player1.id, cecs.entities.get(entity1).?.get(Player.t_id).?);
+        try std.testing.expectEqual(2, ecce.entities.get(entity1).?.values().len);
+        try std.testing.expectEqual(player1.id, ecce.entities.get(entity1).?.get(Player.t_id).?);
 
-        const stored_player = cecs.components.entries.player_components.get(player1.id).?;
+        const stored_player = ecce.components.entries.player_components.get(player1.id).?;
         try std.testing.expectEqual(player1.data.name, stored_player.data.name);
-        const stored_health = try cecs.get_component_by_id(Health, health1.id);
+        const stored_health = try ecce.get_component_by_id(Health, health1.id);
         try std.testing.expectEqual(health1.data.value, stored_health.data.value);
     }
     
-    const entity2: Entity = try cecs.add_entity();
+    const entity2: Entity = try ecce.add_entity();
     {
         
-        const player2 = Player { .id = cecs.components.entries.player_components.values().len, .entity = entity2, .data = PlayerData { .id = 42, .name = "Guy" } };
-        const health2 = Health { .id = cecs.components.entries.health_components.values().len, .entity = entity2, .data = HealthData { .value = 150 } };
-        try cecs.add_component(entity2, player2);
-        try cecs.add_component(entity2, health2);
+        const player2 = Player { .id = ecce.components.entries.player_components.values().len, .entity = entity2, .data = PlayerData { .id = 42, .name = "Guy" } };
+        const health2 = Health { .id = ecce.components.entries.health_components.values().len, .entity = entity2, .data = HealthData { .value = 150 } };
+        try ecce.add_component(entity2, player2);
+        try ecce.add_component(entity2, health2);
 
-        try std.testing.expectEqual(2, cecs.entities.get(entity2).?.values().len);
-        try std.testing.expectEqual(player2.id, cecs.entities.get(entity2).?.get(Player.t_id).?);
+        try std.testing.expectEqual(2, ecce.entities.get(entity2).?.values().len);
+        try std.testing.expectEqual(player2.id, ecce.entities.get(entity2).?.get(Player.t_id).?);
         
-        const stored_player = cecs.components.entries.player_components.get(player2.id).?;
+        const stored_player = ecce.components.entries.player_components.get(player2.id).?;
         try std.testing.expectEqual(player2.data.name, stored_player.data.name);
-        const stored_health = try cecs.get_component_by_id(Health, health2.id);
+        const stored_health = try ecce.get_component_by_id(Health, health2.id);
         try std.testing.expectEqual(health2.data.value, stored_health.data.value);
     }
 
-    try std.testing.expectEqual(cecs.entities.values().len, 2);
-    try std.testing.expectEqual(cecs.components.entries.player_components.values().len, 2);
-    try std.testing.expectEqual(cecs.components.entries.health_components.values().len, 2);
+    try std.testing.expectEqual(ecce.entities.values().len, 2);
+    try std.testing.expectEqual(ecce.components.entries.player_components.values().len, 2);
+    try std.testing.expectEqual(ecce.components.entries.health_components.values().len, 2);
     
     try std.testing.expect(true);
 }
