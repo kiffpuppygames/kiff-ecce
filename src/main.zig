@@ -1,39 +1,36 @@
 
 const std = @import("std");
-const RndGen = std.Random.DefaultPrng;
 
 pub const Entity = u64;
-pub const ComponentReferences = std.AutoArrayHashMap(u8, u64);
+pub const ComponentReferences = std.AutoArrayHashMap(u64, u64);
 
 pub const ComponentInfo = struct 
 {
     component_type: type,
-    component_type_id: u8 = undefined,
+    component_type_id: u64 = undefined,
 };
 
-fn to_lowerCase_and_append_suffix(input: []const u8) ![:0]const u8 
+fn to_lower_case(input: []const u8) ![:0]const u8 
 {
     const input_len = input.len;
 
     var buffer: [input_len:0]u8 = undefined;
 
-    // Convert input to lowercase
-    for (input, 0..) |c, i| {
+    for (input, 0..) |c, i| 
+    {
         buffer[i] = std.ascii.toLower(c);
     }
-
-    // Add zero-length sentinel
-    //buffer[total_len - 1] = 0;
+    
     return &buffer;
 }
 
-pub fn create_component(data_type: type, collection_handle: [:0]const u8, type_id: u8) type
+pub fn create_component(data_type: type, collection_handle: [:0]const u8) type
 {
     const Component = comptime struct 
     { 
         const Self = @This();
         const handle: [:0]const u8 = collection_handle;
-        const t_id: u8 = type_id;
+        const t_id: u64 = hash_type_name_64(@typeName(data_type));
 
         id: u64, 
         entity: Entity,         
@@ -48,31 +45,10 @@ pub fn create_component(data_type: type, collection_handle: [:0]const u8, type_i
     return Component;
 }
 
-pub fn create_component_register_entry(component_type: type) type
-{
-    const ComponentRegisterEntry = struct 
-    {
-        const Self = @This();
-
-        components: std.AutoArrayHashMap(u64, component_type),
-
-        pub fn new(allocator: std.mem.Allocator) Self 
-        {
-            return Self { .components = std.AutoArrayHashMap(u64, component_type).init(allocator) };
-        }
-
-        pub fn deinit(self: *Self) void 
-        {
-            self.components.deinit();
-        }
-    };
-
-    return ComponentRegisterEntry;
-}
-
 pub fn create_component_register(component_infos: []const ComponentInfo) type
 {
-    var struct_fields: [component_infos.len]std.builtin.Type.StructField = undefined;
+    const num_components = component_infos.len;
+    var struct_fields: [component_infos.len * 2]std.builtin.Type.StructField = undefined;
     inline for (component_infos, 0..) |component_info, i| 
     {
         struct_fields[i] = std.builtin.Type.StructField {
@@ -81,6 +57,17 @@ pub fn create_component_register(component_infos: []const ComponentInfo) type
             .default_value = null,
             .is_comptime = false,
             .alignment = @alignOf(component_info.component_type),
+        };
+    }
+
+    inline for (component_infos, 0..) |component_info, i| 
+    {
+        struct_fields[num_components + i] = std.builtin.Type.StructField {
+            .name = component_info.component_type.handle ++ "_next_id",
+            .type = u64,
+            .default_value = null,
+            .is_comptime = false,
+            .alignment = @alignOf(u64),
         };
     }
 
@@ -100,13 +87,13 @@ pub fn create_component_register(component_infos: []const ComponentInfo) type
         entries: Entries,
         const infos= component_infos;
 
-        pub fn new() Self 
+        pub fn new(allocator: *const std.mem.Allocator) Self 
         {
             var entries: Entries = undefined;
 
             inline for (Self.infos) |component_info| 
             {
-                @field(entries,  try to_lowerCase_and_append_suffix(component_info.component_type.handle)) = undefined;
+                @field(entries,  try to_lower_case(component_info.component_type.handle)) = std.AutoArrayHashMap(u64, component_info.component_type).init(allocator.*);
             }
 
             return Self 
@@ -135,14 +122,16 @@ pub fn create_cecs(component_types: []const type) type
     {
         const Self = @This();
         const ComponentRegister = create_component_register(&component_infos);
+        var allocator: *const std.mem.Allocator = undefined;
 
         entities: std.AutoArrayHashMap(u64, ComponentReferences),
         components: ComponentRegister,
 
-        pub fn new(allocator: std.mem.Allocator) Self 
+        pub fn new(alloc: *const std.mem.Allocator) Self 
         {
-            const entities = std.AutoArrayHashMap(u64, ComponentReferences).init(allocator);
-            const component_register = ComponentRegister.new();
+            allocator = alloc;
+            const entities = std.AutoArrayHashMap(u64, ComponentReferences).init(allocator.*);
+            const component_register = ComponentRegister.new(allocator);
 
             return Self 
             { 
@@ -161,76 +150,39 @@ pub fn create_cecs(component_types: []const type) type
             self.entities.deinit();   
         }
 
-        pub fn add_entity(self: *Self, entity: Entity) void 
+        pub fn add_entity(self: *Self) !Entity 
         {
-            self.entities.put(entity, std.ArrayList(u64).init(self.allocator));
+            const entity: Entity = self.get_next_entity_id();
+            try self.entities.put(entity, ComponentReferences.init(allocator.*));            
+            return entity;
         }
 
-        pub fn add_component(self: *Self, entity: Entity, component: anytype) void 
+        inline fn get_next_entity_id(self: *Self) Entity 
+        {
+            return self.entities.count() + 1;
+        }  
+
+        pub fn add_component(self: *Self, entity: Entity, component: anytype) !void 
         {
             const component_type = @TypeOf(component);
-            self.entities.get(entity).append(component_type, component.id);
-            self.component_registry.get(component_type).put(component.id, component);
-        }      
+            
+            try @field(self.components.entries, component_type.handle).put(component.id, component);
+            try self.entities.getPtr(entity).?.put(component_type.t_id, component.id);
+        }
+
+        pub fn get_component_by_id(self: *Self, component_type: type, component_id: u64) !component_type 
+        {
+            return @field(self.components.entries, component_type.handle).get(component_id).?;
+        }
+
+        pub fn get_component_by_entity(self: *Self, entity: Entity, component_type: type) !component_type 
+        {
+            const component_id = self.entities.get(entity).?.get(component_type.t_id);
+            return self.get_component_by_id(component_type, component_id.?);
+        }
     };
 
     return CECS;
-}
-
-pub fn create_registry(component_types: []const type) type
-{
-    const ComponentRegistry = struct 
-    {
-        const Self = @This();
-
-        comptime 
-        {
-            for (component_types) |component_type| 
-            {
-                @field(Self, @typeName(component_type)) = std.AutoArrayHashMap(u64, component_type); 
-            }
-        }
-        
-        pub fn new(allocator: std.mem.Allocator) Self 
-        {
-            return Self 
-            {
-                comptime 
-                {
-                    for (component_types) |component_type| 
-                    {
-                        @field(Self, @typeName(component_type)) = std.AutoArrayHashMap(u64, component_type).init(allocator); 
-                    }
-                }
-            };
-        }
-
-        pub fn deinit(self: *Self) void 
-        {
-            comptime 
-            {
-                for (component_types) |component_type| 
-                {
-                    @field(self, @typeName(component_type)) = std.AutoArrayHashMap(u64, component_type); 
-                }
-            }
-        }
-    };
-
-    return ComponentRegistry;
-}
-
-test "create component" 
-{
-    // const PlayerData = comptime struct { id: i32, name: []const u8 };
-    // const PlayerComponent = comptime create_component(PlayerData);
-
-    // const entity: Entity = 1;
-    // const player_1 = PlayerComponent { .id = 1, .entity = entity, .data = PlayerData { .id = 42, .name = "Guy" } };
-
-    // try std.testing.expectEqual(entity, player_1.entity);
-    // try std.testing.expectEqual(42, player_1.data.id);    
-    // try std.testing.expectEqual("Guy", player_1.data.name);  
 }
 
 fn generate_component_infos(component_types: []const type) [component_types.len]ComponentInfo
@@ -248,11 +200,15 @@ fn generate_component_infos(component_types: []const type) [component_types.len]
     return component_infos;
 }
 
-const ComponentDescriptor = struct 
-{
-    component_type: type,
-    collection_name: []const u8,
-};
+fn hash_type_name_64(type_name: []const u8) u64 {
+    var hash: u64 = 5381;
+    for (type_name) |c| {
+        const mul_result = @mulWithOverflow(hash, 33);
+        const add_result = @addWithOverflow(mul_result[0], @as(u64, c));
+        hash = add_result[0];
+    }
+    return hash;
+}
 
 test "init cecs" 
 {
@@ -262,8 +218,8 @@ test "init cecs"
     const PlayerData = comptime struct { id: i32, name: []const u8 };
     const HealthData = comptime struct { value: i32 };
     
-    const Player = comptime create_component(PlayerData, "player_components", 0);
-    const Health = comptime create_component(HealthData, "health_components", 1);
+    const Player = comptime create_component(PlayerData, "player_components");
+    const Health = comptime create_component(HealthData, "health_components");
 
     const component_types = [_]type {
         Player,
@@ -272,33 +228,45 @@ test "init cecs"
 
     const CECS = comptime create_cecs(&component_types);
 
-    var cecs = CECS.new(alloc.allocator());    
+    var cecs = CECS.new(&alloc.allocator());    
     defer cecs.deinit();
 
-    const entity: Entity = 1;
-    const player_component = Player { .id = 1, .entity = entity, .data = PlayerData { .id = 42, .name = "Guy" } };
+    const entity1: Entity = try cecs.add_entity();
+    {
+        const player1 = Player { .id = cecs.components.entries.player_components.values().len, .entity = entity1, .data = PlayerData { .id = 42, .name = "Guy" } };
+        const health1 = Health { .id = cecs.components.entries.health_components.values().len, .entity = entity1, .data = HealthData { .value = 100 } };
+        try cecs.add_component(entity1, player1);
+        try cecs.add_component(entity1, health1);
+
+        try std.testing.expectEqual(2, cecs.entities.get(entity1).?.values().len);
+        try std.testing.expectEqual(player1.id, cecs.entities.get(entity1).?.get(Player.t_id).?);
+
+        const stored_player = cecs.components.entries.player_components.get(player1.id).?;
+        try std.testing.expectEqual(player1.data.name, stored_player.data.name);
+        const stored_health = try cecs.get_component_by_id(Health, health1.id);
+        try std.testing.expectEqual(health1.data.value, stored_health.data.value);
+    }
     
-    //const health_component = Health { .id = 2, .entity = entity, .data = HealthData { .value = 100 } };
+    const entity2: Entity = try cecs.add_entity();
+    {
+        
+        const player2 = Player { .id = cecs.components.entries.player_components.values().len, .entity = entity2, .data = PlayerData { .id = 42, .name = "Guy" } };
+        const health2 = Health { .id = cecs.components.entries.health_components.values().len, .entity = entity2, .data = HealthData { .value = 150 } };
+        try cecs.add_component(entity2, player2);
+        try cecs.add_component(entity2, health2);
 
-    try cecs.entities.put(entity, ComponentReferences.init(alloc.allocator()));
-    try cecs.entities.getPtr(entity).?.put(Player.t_id, player_component.id);
+        try std.testing.expectEqual(2, cecs.entities.get(entity2).?.values().len);
+        try std.testing.expectEqual(player2.id, cecs.entities.get(entity2).?.get(Player.t_id).?);
+        
+        const stored_player = cecs.components.entries.player_components.get(player2.id).?;
+        try std.testing.expectEqual(player2.data.name, stored_player.data.name);
+        const stored_health = try cecs.get_component_by_id(Health, health2.id);
+        try std.testing.expectEqual(health2.data.value, stored_health.data.value);
+    }
 
-    cecs.components.entries.player_components = std.AutoArrayHashMap(u64, Player).init(alloc.allocator());
-    try cecs.components.entries.player_components.put(player_component.id, player_component);
-
-    try std.testing.expectEqual(cecs.components.entries.player_components.values().len, 1);
-
-    //try cecs.components.Player.put(player_component.id, player_component);
-    //try cecs.components.health_components.put(health_component.id, health_component);
-
-    //const entity_info: ComponentReferences = cecs.entities.get(entity).?;
-    //_ = entity_info; // autofix
-    
-    //try std.testing.expectEqual(2, entity_info.count());
-    // try std.testing.expectEqual(player_component.id, entity_info.get(@intFromEnum(ComponentType.Player)).?);
-    // try std.testing.expectEqual(health_component.id, entity_info.get(@intFromEnum(ComponentType.Health)).?);
-    // try std.testing.expectEqual(42, cecs.component_registry.player_components.get(player_component.id).?.data.id);
-    // try std.testing.expectEqual("Guy", cecs.component_registry.player_components.get(player_component.id).?.data.name);
+    try std.testing.expectEqual(cecs.entities.values().len, 2);
+    try std.testing.expectEqual(cecs.components.entries.player_components.values().len, 2);
+    try std.testing.expectEqual(cecs.components.entries.health_components.values().len, 2);
     
     try std.testing.expect(true);
 }
