@@ -63,7 +63,7 @@ test "init ecce and add components"
     try std.testing.expectEqual(world.components.entries.health_components.values().len, 2);
 }
 
-test "init ecce and add commands" 
+test "init ecce, add commands and handle" 
 {
     var alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer alloc.deinit();
@@ -71,8 +71,8 @@ test "init ecce and add commands"
     const GreetingCmdData = comptime struct { text: []const u8 };
     const FarewellCmdData = comptime struct { text: []const u8 };
     
-    const GreetCommand = comptime commands.create_commnad(GreetingCmdData, "greet_commands");
-    const FarewellCommand = comptime commands.create_commnad(FarewellCmdData, "farewell_commands");
+    const GreetCommand = comptime commands.create_command(GreetingCmdData, "greet_commands");
+    const FarewellCommand = comptime commands.create_command(FarewellCmdData, "farewell_commands");
 
     const command_types = [_]type {
         GreetCommand,
@@ -85,8 +85,32 @@ test "init ecce and add commands"
     defer world.deinit();
 
     try world.dispatch_command(GreetCommand { .id = 0, .entity = 0, .data = GreetingCmdData { .text = "Hello" } });
-    try world.dispatch_command(FarewellCommand { .id = 0, .entity = 0, .data = FarewellCmdData { .text = "Hello" } });
+    try world.dispatch_command(FarewellCommand { .id = 0, .entity = 0, .data = FarewellCmdData { .text = "Goodbye" } });
 
     try std.testing.expectEqual(1, world.commands.entries.greet_commands.values().len);
     try std.testing.expectEqual(1, world.commands.entries.farewell_commands.values().len);
+
+    for (world.commands.entries.greet_commands.values().len) |_| 
+    {
+        handle_greet_command(world.commands.entries.greet_commands.pop().value.data);
+    }
+
+    try std.testing.expectEqual(0, world.commands.entries.greet_commands.values().len);
+
+    for (world.commands.entries.farewell_commands.values().len) |_| 
+    {
+        handle_farewell_command(world.commands.entries.farewell_commands.pop().value.data);
+    }
+
+    try std.testing.expectEqual(0, world.commands.entries.farewell_commands.values().len);
+}
+
+fn handle_greet_command(command_data: anytype) void
+{
+    std.debug.print("\n{s}", .{command_data.text});
+}
+
+fn handle_farewell_command(command_data: anytype) void
+{
+    std.debug.print("\n{s}\n", .{command_data.text});
 }

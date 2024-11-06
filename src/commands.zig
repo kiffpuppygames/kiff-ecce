@@ -4,7 +4,7 @@ const strings = @import("strings.zig");
 const ids = @import("ids.zig");
 const ecce = @import("ecce.zig");
 
-pub fn create_commnad(data_type: type, collection_handle: [:0]const u8) type
+pub fn create_command(data_type: type, collection_handle: [:0]const u8) type
 {
     const Command = comptime struct 
     { 
