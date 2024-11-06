@@ -1,8 +1,16 @@
 # Kiff-ECCE Framework
 
-***This framework is a work in progress. At this point in time, only Entities and Components are implemented. The framework is not being built for performance yet; optimizations will come later, as I am currently focusing on the API's ergonomics.***
+***This framework is a work in progress. At present framework is not being built for performance; optimizations will come later, as I am currently focusing on the API's ergonomics.***
 
 The Kiff-ECCE Framework is an architectural pattern that leverages Entities, Components, Commands, Events, and Command Handlers to build scalable and maintainable systems. It is a variation on the standard ECS pattern but does not include Queries, focusing instead on the dynamic interaction between commands and events to drive the system's behavior.
+
+## Progress
+
+- [x] Entities
+- [x] Components
+- [x] Commands
+- [ ] Events
+- [ ] Command Handlers
 
 ## Key Concepts
 
