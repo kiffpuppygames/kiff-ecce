@@ -88,6 +88,5 @@ test "init ecce and add commands"
     try world.dispatch_command(FarewellCommand { .id = 0, .entity = 0, .data = FarewellCmdData { .text = "Hello" } });
 
     try std.testing.expectEqual(1, world.commands.entries.greet_commands.values().len);
-
-    try std.testing.expect(true);
+    try std.testing.expectEqual(1, world.commands.entries.farewell_commands.values().len);
 }
