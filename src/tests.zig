@@ -2,6 +2,7 @@ const std = @import("std");
 
 const ecce = @import("ecce.zig");
 const components = @import("components.zig");
+const commands = @import("commands.zig");
 
 test "init ecce and add components" 
 {
@@ -19,7 +20,7 @@ test "init ecce and add components"
         Health,
     };
 
-    const ECCE = comptime ecce.create_ecce(&component_types);
+    const ECCE = comptime ecce.create_ecce(&component_types, &[_]type{});
 
     var world = ECCE.new(&alloc.allocator());    
     defer world.deinit();
@@ -60,4 +61,33 @@ test "init ecce and add components"
     try std.testing.expectEqual(world.entities.values().len, 2);
     try std.testing.expectEqual(world.components.entries.player_components.values().len, 2);
     try std.testing.expectEqual(world.components.entries.health_components.values().len, 2);
+}
+
+test "init ecce and add commands" 
+{
+    var alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer alloc.deinit();
+
+    const GreetingCmdData = comptime struct { text: []const u8 };
+    const FarewellCmdData = comptime struct { text: []const u8 };
+    
+    const GreetCommand = comptime commands.create_commnad(GreetingCmdData, "greet_commands");
+    const FarewellCommand = comptime commands.create_commnad(FarewellCmdData, "farewell_commands");
+
+    const command_types = [_]type {
+        GreetCommand,
+        FarewellCommand,
+    };
+
+    const ECCE = comptime ecce.create_ecce(&[_]type{}, &command_types);
+
+    var world = ECCE.new(&alloc.allocator());    
+    defer world.deinit();
+
+    try world.dispatch_command(GreetCommand { .id = 0, .entity = 0, .data = GreetingCmdData { .text = "Hello" } });
+    try world.dispatch_command(FarewellCommand { .id = 0, .entity = 0, .data = FarewellCmdData { .text = "Hello" } });
+
+    try std.testing.expectEqual(1, world.commands.entries.greet_commands.values().len);
+
+    try std.testing.expect(true);
 }

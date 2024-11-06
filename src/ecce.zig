@@ -1,10 +1,11 @@
 const std = @import("std");
 
 const components = @import("components.zig");
+const commands = @import("commands.zig");
 
 pub const Entity = u64;
 
-pub fn create_ecce(component_types: []const type) type
+pub fn create_ecce(component_types: []const type, command_types: []const type) type
 {
     const component_infos = comptime components.generate_component_infos(component_types);
 
@@ -12,21 +13,25 @@ pub fn create_ecce(component_types: []const type) type
     {
         const Self = @This();
         const ComponentRegister = components.create_component_register(&component_infos);
+        const CommandRegister = commands.create_command_register(command_types);
         var allocator: *const std.mem.Allocator = undefined;
 
         entities: std.AutoArrayHashMap(u64, components.ComponentReferences),
         components: ComponentRegister,
+        commands: CommandRegister,
 
         pub fn new(alloc: *const std.mem.Allocator) Self 
         {
             allocator = alloc;
             const entities = std.AutoArrayHashMap(u64, components.ComponentReferences).init(allocator.*);
             const component_register = ComponentRegister.new(allocator);
+            const command_register = CommandRegister.new(allocator);
 
             return Self 
             { 
                 .entities = entities, 
                 .components = component_register,
+                .commands = command_register,
             };
         }
 
@@ -69,6 +74,12 @@ pub fn create_ecce(component_types: []const type) type
         {
             const component_id = self.entities.get(entity).?.get(component_type.t_id);
             return self.get_component_by_id(component_type, component_id.?);
+        }
+
+        pub fn dispatch_command(self: *Self, command: anytype) !void 
+        {
+            const command_type = @TypeOf(command);
+            try @field(self.commands.entries, command_type.handle).put(command.id, command);
         }
     };
 
