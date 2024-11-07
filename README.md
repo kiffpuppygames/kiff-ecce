@@ -26,36 +26,83 @@ The Kiff-ECCE Framework is an architectural pattern that leverages Entities, Com
  
 ***These example are simple, as the API is not fully mature yet.***
 
-By using Zigs comptime functionality we can build dynamic structs allowing us to create concrete implimentaions of components, entities and commands. To register a component or commnad you can do as follows:
+By using Zigs comptime functionality we can build dynamic structs allowing us to create concrete implimentaions of components, entities and commands. To register a component or command you can do as follows:
 
 ### Component Creation
 
 ```zig
 
+const PersonComponentData = struct { name: []const u8 };
+const PersonComponent = components.create_component(PersonComponentData, "person_components");
 
+const component_types = [_]type {
+    PersonComponent,
+};
 
 ```
 
-### Commnad Creation
+### Command Creation
 
 ```zig
 
 const GreetCommand = comptime components.create_command( .{}, "greet_commands);
-const FarwellCommnad = comptime components.create_commnad(.{}, "farewell_commands");
 
 const command_types = [_]type 
 {
     GreetCommand,
-    FarwellCommnad,
 };
 
 ```
 
 ### Create ECCE
+
 ```zig
+
+const FareAllCommandData = struct { script_entity: ecce.Entity };
+const FarewellAllCommand = commands.create_command(FareAllCommandData, "farewell_all_commands");
+
+const command_types = [_]type 
+{  
+    FarewellAllCommand,
+};
 
 ```
 
-A complete example can be found in [main.zig](https://github.com/kiffpuppygames/kiff-ECCE/blob/master/src/main.zig)
+### Adding Commands and Components
+
+```zig
+
+const person_2_entity: ecce.Entity = try world.add_entity();
+try world.add_component(person_2_entity, PersonComponent 
+{ 
+    .id = world.get_next_component_id(),
+    .entity = person_2_entity, 
+    .data = PersonComponentData { .name = "Jane" }
+});    
+
+try world.dispatch_command(GreetCommand 
+{ 
+    .id = world.get_next_command_id(), 
+    .data = GreetCommandData { .target_entity = person_1_entity, .script_entity = script_entity }
+});
+
+```
+
+### Access Commands and Components
+
+```zig
+
+for (world.commands.entries.greet_all_commands.values()) |cmd| 
+{
+    for (world.components.entries.person_components.values()) |person_component| 
+    {
+        const greet_component = try world.get_component_by_entity(cmd.data.?.script_entity, GreetComponent);          
+        std.debug.print("\n{s} {s}", .{ greet_component.data.greeting_text , person_component.data.name });
+    }
+}
+
+```
+
+**A complete example can be found in [main.zig](https://github.com/kiffpuppygames/kiff-ECCE/blob/master/src/main.zig)**
 
 
