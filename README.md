@@ -24,7 +24,7 @@ The Kiff-ECCE Framework is an architectural pattern that leverages Entities, Com
 
 ## Example
  
-***These example are simple, as the API is not fully mature yet.***
+***These examples are simple, as the API is not fully mature yet.***
 
 By using Zigs comptime functionality we can build dynamic structs allowing us to create concrete implimentaions of components, entities and commands. To register a component or command you can do as follows:
 
