@@ -84,8 +84,8 @@ test "init ecce, add commands and handle"
     var world = ECCE.new(&alloc.allocator());    
     defer world.deinit();
 
-    try world.dispatch_command(GreetCommand { .id = 0, .entity = 0, .data = GreetingCmdData { .text = "Hello" } });
-    try world.dispatch_command(FarewellCommand { .id = 0, .entity = 0, .data = FarewellCmdData { .text = "Goodbye" } });
+    try world.dispatch_command(GreetCommand { .id = world.get_next_command_id(), .data = GreetingCmdData { .text = "Hello" } });
+    try world.dispatch_command(FarewellCommand { .id = world.get_next_command_id(), .data = FarewellCmdData { .text = "Goodbye" } });
 
     try std.testing.expectEqual(1, world.commands.entries.greet_commands.values().len);
     try std.testing.expectEqual(1, world.commands.entries.farewell_commands.values().len);
@@ -107,10 +107,10 @@ test "init ecce, add commands and handle"
 
 fn handle_greet_command(command_data: anytype) void
 {
-    std.debug.print("\n{s}", .{command_data.text});
+    std.debug.print("\n{s}", .{command_data.?.text});
 }
 
 fn handle_farewell_command(command_data: anytype) void
 {
-    std.debug.print("\n{s}\n", .{command_data.text});
+    std.debug.print("\n{s}\n", .{command_data.?.text});
 }

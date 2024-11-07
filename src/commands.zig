@@ -4,21 +4,20 @@ const strings = @import("strings.zig");
 const ids = @import("ids.zig");
 const ecce = @import("ecce.zig");
 
-pub fn create_command(data_type: type, collection_handle: [:0]const u8) type
+pub fn create_command(data_type: ?type, collection_handle: [:0]const u8) type
 {
     const Command = comptime struct 
     { 
         const Self = @This();
         pub const handle: [:0]const u8 = collection_handle;
-        pub const t_id: u64 = ids.hash_type_name_64(@typeName(data_type));
+        pub const t_id: u64 = ids.hash_type_name_64(@typeName(data_type.?));
 
         id: u64, 
-        entity: ecce.Entity,         
-        data: data_type,
+        data: ?data_type.? ,
 
         pub fn new() Self 
         {
-            return Self { .id = 0, .entity = 0, .data = undefined };
+            return Self { .id = 0, .data = null };
         }
     };
 

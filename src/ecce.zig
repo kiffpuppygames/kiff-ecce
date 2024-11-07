@@ -14,7 +14,11 @@ pub fn create_ecce(component_types: []const type, command_types: []const type) t
         const Self = @This();
         const ComponentRegister = components.create_component_register(&component_infos);
         const CommandRegister = commands.create_command_register(command_types);
+                        
         var allocator: *const std.mem.Allocator = undefined;
+        var next_component_id: u64 = 0;
+        var next_command_id: u64 = 0;
+        var next_entity: Entity = 0;
 
         entities: std.AutoArrayHashMap(u64, components.ComponentReferences),
         components: ComponentRegister,
@@ -54,8 +58,27 @@ pub fn create_ecce(component_types: []const type, command_types: []const type) t
 
         inline fn get_next_entity_id(self: *Self) Entity 
         {
-            return self.entities.count() + 1;
-        }  
+            _ = self; // autofix
+            const entity = next_entity;
+            next_entity += 1;
+            return entity;
+        }
+
+        pub fn get_next_component_id(self: *Self) u64 
+        {
+            _ = self; // autofix
+            const id = next_component_id;
+            next_component_id += 1;
+            return id;
+        }
+
+        pub fn get_next_command_id(self: *Self) u64 
+        {
+            _ = self; // autofix
+            const id = next_command_id;
+            next_command_id += 1;
+            return id;
+        }
 
         pub fn add_component(self: *Self, entity: Entity, component: anytype) !void 
         {

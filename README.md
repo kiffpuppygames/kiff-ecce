@@ -11,6 +11,8 @@ The Kiff-ECCE Framework is an architectural pattern that leverages Entities, Com
 - [x] Commands
 - [ ] Events
 - [ ] Command Handlers
+- [ ] Schedules
+- [ ] Resources
 
 ## Key Concepts
 
@@ -21,5 +23,39 @@ The Kiff-ECCE Framework is an architectural pattern that leverages Entities, Com
 - **Command Handlers**: Functions or methods that process commands and generate events.
 
 ## Example
+ 
+***These example are simple, as the API is not fully mature yet.***
 
-***Examples will be provided once I have a minimally functional API.***
+By using Zigs comptime functionality we can build dynamic structs allowing us to create concrete implimentaions of components, entities and commands. To register a component or commnad you can do as follows:
+
+### Component Creation
+
+```zig
+
+
+
+```
+
+### Commnad Creation
+
+```zig
+
+const GreetCommand = comptime components.create_command( .{}, "greet_commands);
+const FarwellCommnad = comptime components.create_commnad(.{}, "farewell_commands");
+
+const command_types = [_]type 
+{
+    GreetCommand,
+    FarwellCommnad,
+};
+
+```
+
+### Create ECCE
+```zig
+
+```
+
+A complete example can be found in [main.zig](https://github.com/kiffpuppygames/kiff-ECCE/blob/master/src/main.zig)
+
+
