@@ -58,13 +58,7 @@ const command_types = [_]type
 
 ```zig
 
-const FareAllCommandData = struct { script_entity: ecce.Entity };
-const FarewellAllCommand = commands.create_command(FareAllCommandData, "farewell_all_commands");
-
-const command_types = [_]type 
-{  
-    FarewellAllCommand,
-};
+const ECCE = ecce.create_ecce(&component_types, &command_types);
 
 ```
 
