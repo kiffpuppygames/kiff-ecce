@@ -47,8 +47,7 @@ const component_types = [_]type {
 
 const GreetCommand = comptime components.create_command( .{}, "greet_commands);
 
-const command_types = [_]type 
-{
+const command_types = [_]type {
     GreetCommand,
 };
 
