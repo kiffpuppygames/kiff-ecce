@@ -27,7 +27,7 @@ test "init ecce and add components"
 
     const entity1: ecce.Entity = try world.add_entity();
     {
-        const player1 = Player { .id = world.components.entries.player_components.values().len, .entity = entity1, .data = PlayerData { .id = 42, .name = "Guy" } };
+        const player1 = Player { .id = world.components.entries.player_components.values().len, .entity = entity1, .data = PlayerData { .id = 42, .name = "Red" } };
         const health1 = Health { .id = world.components.entries.health_components.values().len, .entity = entity1, .data = HealthData { .value = 100 } };
         try world.add_component(entity1, player1);
         try world.add_component(entity1, health1);
@@ -42,9 +42,8 @@ test "init ecce and add components"
     }
     
     const entity2: ecce.Entity = try world.add_entity();
-    {
-        
-        const player2 = Player { .id = world.components.entries.player_components.values().len, .entity = entity2, .data = PlayerData { .id = 42, .name = "Connor" } };
+    {        
+        const player2 = Player { .id = world.components.entries.player_components.values().len, .entity = entity2, .data = PlayerData { .id = 42, .name = "Blue" } };
         const health2 = Health { .id = world.components.entries.health_components.values().len, .entity = entity2, .data = HealthData { .value = 150 } };
         try world.add_component(entity2, player2);
         try world.add_component(entity2, health2);
@@ -90,19 +89,34 @@ test "init ecce, add commands and handle"
     try std.testing.expectEqual(1, world.commands.entries.greet_commands.values().len);
     try std.testing.expectEqual(1, world.commands.entries.farewell_commands.values().len);
 
-    for (world.commands.entries.greet_commands.values().len) |_| 
+    for (world.commands.entries.greet_commands.values()) |_| 
     {
-        handle_greet_command(world.commands.entries.greet_commands.pop().value.data);
+        handle_greet_command(world.commands.entries.greet_commands.pop().?.value.data);
     }
 
     try std.testing.expectEqual(0, world.commands.entries.greet_commands.values().len);
 
-    for (world.commands.entries.farewell_commands.values().len) |_| 
+    for (world.commands.entries.farewell_commands.values()) |_| 
     {
-        handle_farewell_command(world.commands.entries.farewell_commands.pop().value.data);
+        handle_farewell_command(world.commands.entries.farewell_commands.pop().?.value.data);
     }
 
     try std.testing.expectEqual(0, world.commands.entries.farewell_commands.values().len);
+}
+
+test "Compile-time struct with function, const, and var" 
+{
+    const fields = [_]ecce.Field { 
+        .{ .name = "x", ._type = i32, .value = null },
+        .{ .name = "y", ._type = i32, .value = null },
+    };
+
+    const Position = ecce.makeStruct(fields, fields.len);
+
+    _ = Position { .x = 10, .y = 3 };
+    
+
+    try std.testing.expect(true);
 }
 
 fn handle_greet_command(command_data: anytype) void

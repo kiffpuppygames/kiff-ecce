@@ -5,6 +5,14 @@ const commands = @import("commands.zig");
 
 pub const Entity = u64;
 
+pub const Field = struct 
+{
+    name: [:0]const u8,
+    _type: type,
+    value: ?*const anyopaque,
+    is_func: bool = false,
+};
+
 pub fn create_ecce(component_types: []const type, command_types: []const type) type
 {
     const component_infos = comptime components.generate_component_infos(component_types);
@@ -41,11 +49,6 @@ pub fn create_ecce(component_types: []const type, command_types: []const type) t
 
         pub fn deinit(self: *Self) void 
         {
-            for (0..self.entities.count()) |_| 
-            {
-                var kv = self.entities.pop();
-                kv.value.deinit();
-            }
             self.entities.deinit();   
         }
 
@@ -107,4 +110,34 @@ pub fn create_ecce(component_types: []const type, command_types: []const type) t
     };
 
     return ecce;
+}
+
+pub fn makeStruct(comptime fields_slice: anytype, comptime field_count: usize) type 
+{
+    const fields = @as([field_count]Field, fields_slice);
+
+    var struct_fields: [field_count]std.builtin.Type.StructField = undefined;
+
+    for (struct_fields[0..], 0..) |*field, i| {
+        var field_value: std.builtin.Type.StructField = undefined;
+        field_value = .{
+            .name = fields[i].name,
+            .type = fields[i]._type,
+            .default_value_ptr = fields[i].value orelse null,
+            .is_comptime = false,
+            .alignment = @alignOf(fields[i]._type),
+        };
+        field.* = field_value;
+    }
+
+    const new_type: type = @Type(.{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = &struct_fields,
+            .decls = &[_]std.builtin.Type.Declaration{},
+            .is_tuple = false,            
+        },
+    });
+
+    return new_type;
 }

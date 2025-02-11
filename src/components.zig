@@ -57,7 +57,7 @@ pub fn create_component_register(component_infos: []const ComponentInfo) type
         struct_fields[i] = std.builtin.Type.StructField {
             .name = component_info.component_type.handle,
             .type = std.AutoArrayHashMap(u64, comptime component_info.component_type),
-            .default_value = null,
+            .default_value_ptr = null,
             .is_comptime = false,
             .alignment = @alignOf(component_info.component_type),
         };
@@ -68,7 +68,7 @@ pub fn create_component_register(component_infos: []const ComponentInfo) type
         struct_fields[num_components + i] = std.builtin.Type.StructField {
             .name = component_info.component_type.handle ++ "_next_id",
             .type = u64,
-            .default_value = null,
+            .default_value_ptr = null,
             .is_comptime = false,
             .alignment = @alignOf(u64),
         };

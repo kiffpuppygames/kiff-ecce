@@ -32,7 +32,7 @@ pub fn create_command_register(command_types: []const type) type
         struct_fields[i] = std.builtin.Type.StructField {
             .name = command_type.handle,
             .type = std.AutoArrayHashMap(u64, comptime command_type),
-            .default_value = null,
+            .default_value_ptr = null,
             .is_comptime = false,
             .alignment = @alignOf(command_type),
         };
@@ -43,7 +43,8 @@ pub fn create_command_register(command_types: []const type) type
             .layout = .auto,
             .fields = &struct_fields,
             .is_tuple = false,
-            .decls = &[_]std.builtin.Type.Declaration{}
+            .decls = &[_]std.builtin.Type.Declaration{},
+            
         },
     });
 

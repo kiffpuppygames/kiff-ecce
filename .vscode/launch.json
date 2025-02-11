@@ -3,24 +3,22 @@
     "configurations": [
         {
             "name": "Debug",
-            "type": "cppvsdbg",
+            "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/zig-out/bin/kiff-ecce.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build",
-            "stopAtEntry": false,
             //"externalConsole": true,
         },
         {
             "name": "Debug Tests",
-            "type": "cppvsdbg",
+            "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/zig-out/bin/test",
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build tests",
-            "stopAtEntry": false,
         },
         // {
         //     "name": "Run Benchmarks",

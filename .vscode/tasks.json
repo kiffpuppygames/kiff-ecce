@@ -16,7 +16,6 @@
             },
             "group": {
                 "kind": "build",
-                "isDefault": true
             },
             "problemMatcher": [ "$zig" ]
         },
@@ -35,59 +34,10 @@
                 "cwd": "${workspaceFolder}"
             },
             "group": {
-                "kind": "build",
+                "kind": "build",                
+                "isDefault": true
             },
             "problemMatcher": [ "$zig" ]
         }
-        // {
-        //     "label": "Zig Build Test Debug",
-        //     "type": "shell",
-        //     "command": "zig",
-        //     "args": 
-        //     [
-        //         "build",
-        //         "test"
-        //     ],
-        //     "options": {
-        //         "cwd": "${workspaceFolder}"
-        //     },
-        //     "group": {
-        //         "kind": "build",
-        //         "isDefault": true
-        //     },
-        //     "problemMatcher": [ "$zig" ]
-        // },
-        // {
-        //     "label": "build math tests",
-        //     "type": "shell",
-        //     "command": "zig",
-        //     "args": [
-        //         "test", 
-        //         "-femit-bin=libs/kmath/zig-out/lib/tests",
-        //         "--test-no-exec", 
-        //         "libs/kmath/src/root.zig"],
-        //     "group": {
-        //         "kind": "build",
-        //         "isDefault": true
-        //     },
-        //     "problemMatcher": ["$zig"],
-        //     "detail": "Build the Zig test executable."
-        // },
-        // {
-        //     "label": "build benchmarks",
-        //     "type": "shell",            
-        //     "command": "zig",
-        //     "args": [
-        //         "build",
-        //         "benchmark",
-        //         "-Doptimize=ReleaseFast"
-        //     ],
-        //     "group": {
-        //         "kind": "build",
-        //         "isDefault": true
-        //     },
-        //     "problemMatcher": ["$zig"],
-        //     "detail": "Build the Zig test executable."
-        // }
     ]
 }
