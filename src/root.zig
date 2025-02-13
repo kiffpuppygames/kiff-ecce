@@ -8,7 +8,7 @@ pub const components = struct
 };
 
 
-const commands = struct 
+pub const commands = struct 
 {
     pub const create_command = @import("commands.zig").create_command;
 };
