@@ -1,6 +1,7 @@
 .{
-    .name = "kiff-ecce",
+    .name = "kiff_ecce",
     .version = "0.1.0",
+    .fingerprint = 0x4e72a23e7e04d62f,
     .dependencies = .{ },
     .paths = .{
         "build.zig",
