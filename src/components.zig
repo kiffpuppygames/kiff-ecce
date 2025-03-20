@@ -4,28 +4,10 @@ const ids = @import("ids.zig");
 const strings = @import("strings.zig");
 const ecce = @import("ecce.zig");
 
-pub const ComponentReferences = std.AutoArrayHashMap(u64, u64);
+pub const ComponentId = u64;
+pub const ComponentTypeId = u64;
 
-pub const ComponentInfo = struct 
-{
-    component_type: type,
-    component_type_id: u64 = undefined,
-};
-
-pub fn generate_component_infos(component_types: []const type) [component_types.len]ComponentInfo
-{
-    var component_infos: [component_types.len]ComponentInfo = undefined;
-    inline for (component_types, 0..) |component_type, i| 
-    {
-        component_infos[i] = ComponentInfo 
-        {
-            .component_type = component_type,
-            .component_type_id = i,
-        };
-    }
-
-    return component_infos;
-}
+pub const ComponentReferences = std.AutoArrayHashMap(u64, u64); //maps the componment id to its type
 
 pub fn create_component(data_type: type, collection_handle: [:0]const u8) type
 {
@@ -48,33 +30,25 @@ pub fn create_component(data_type: type, collection_handle: [:0]const u8) type
     return Component;
 }
 
-pub fn create_component_register(component_infos: []const ComponentInfo) type
+pub fn ComponentCollection(component_types: []const type) type
 {
-    const num_components = component_infos.len;
-    var struct_fields: [component_infos.len * 2]std.builtin.Type.StructField = undefined;
-    inline for (component_infos, 0..) |component_info, i| 
+    var struct_fields: [component_types.len] std.builtin.Type.StructField = undefined;
+    
+    inline for (component_types, 0..) |component_type, i| 
     {
-        struct_fields[i] = std.builtin.Type.StructField {
-            .name = component_info.component_type.handle,
-            .type = std.AutoArrayHashMap(u64, comptime component_info.component_type),
-            .default_value_ptr = null,
-            .is_comptime = false,
-            .alignment = @alignOf(component_info.component_type),
-        };
+        if (validateComponent(component_type))
+        {
+            struct_fields[i] = std.builtin.Type.StructField {
+                .name = component_type.collectionName(),
+                .type = std.AutoArrayHashMap(ComponentId, component_type),
+                .default_value_ptr = null,
+                .is_comptime = false,
+                .alignment = @alignOf(std.AutoArrayHashMap(ComponentId, component_type)),
+            };
+        }
     }
 
-    inline for (component_infos, 0..) |component_info, i| 
-    {
-        struct_fields[num_components + i] = std.builtin.Type.StructField {
-            .name = component_info.component_type.handle ++ "_next_id",
-            .type = u64,
-            .default_value_ptr = null,
-            .is_comptime = false,
-            .alignment = @alignOf(u64),
-        };
-    }
-
-    const Entries: type = @Type(.{            
+    return @Type(.{            
         .@"struct" = .{
             .layout = .auto,
             .fields = &struct_fields,
@@ -82,37 +56,40 @@ pub fn create_component_register(component_infos: []const ComponentInfo) type
             .decls = &[_]std.builtin.Type.Declaration{}
         },
     });
+}
 
-    const ComponentRegister = struct 
+pub fn validateComponent(T: type) bool
+{
+    const type_info = @typeInfo(T);
+
+    var id = false;
+    var collection_name = false;
+
+    if (type_info == .@"struct")
     {
-        const Self = @This();
+        const info = type_info.@"struct";
 
-        entries: Entries,
-        const infos= component_infos;
-
-        pub fn new(allocator: *const std.mem.Allocator) Self 
+        inline for (info.fields) |field|
         {
-            var entries: Entries = undefined;
-
-            inline for (Self.infos) |component_info| 
+            if (std.mem.eql(u8, field.name, "id") and field.type == ?ComponentId)
             {
-                @field(entries,  try strings.to_lower_case(component_info.component_type.handle)) = std.AutoArrayHashMap(u64, component_info.component_type).init(allocator.*);
-            }
-
-            return Self 
-            {                
-                .entries = entries,
-            };
+                id = true;
+            }  
         }
 
-        pub fn deinit(self: *Self) void 
+        inline for (info.decls) |decl|
         {
-            inline for (infos) |component_info| 
+            if (std.mem.eql(u8, decl.name, "collectionName"))
             {
-                @field(self.entries, component_info.runtime_name).deinit();
-            }
+                collection_name = true;
+            }  
         }
-    };
+    }
 
-    return ComponentRegister;
+    if (!id) { @compileError("Component does not implement filed id: ?ComponentId"); }
+    if (!collection_name) { @compileError("Component does not implement fn collectionName() [:0] const u8"); }
+
+    if (collection_name and id) return true;
+
+    return false;
 }

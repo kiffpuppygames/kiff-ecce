@@ -4,80 +4,127 @@ const strings = @import("strings.zig");
 const ids = @import("ids.zig");
 const ecce = @import("ecce.zig");
 
-pub fn create_command(data_type: ?type, collection_handle: [:0]const u8) type
+const Logger = @import("kiff_common").Logger;
+
+pub const CommandId = u64;
+pub const CommandHandler = *fn(world: *anyopaque, cmd_type: type) void;
+
+pub const CommandCategory = enum(u64) 
 {
-    const Command = comptime struct 
-    { 
-        const Self = @This();
-        pub const handle: [:0]const u8 = collection_handle;
-        pub const t_id: u64 = ids.hash_type_name_64(@typeName(data_type.?));
+    BatchCommand,
+    TargetCommand,
+};
 
-        id: u64, 
-        data: ?data_type.? ,
+// pub fn CommandQueue(commands: type) type
+// {
+//     return struct 
+//     {
+//         const Self = @This();        
+        
+//         gpa: std.heap.GeneralPurposeAllocator(.{}),
+//         queue: std.ArrayList(commands),
+//         _is_initilized: bool = false,
 
-        pub fn new() Self 
-        {
-            return Self { .id = 0, .data = null };
-        }
-    };
+//         pub fn init() Self
+//         {
+//             const queue = 
 
-    return Command;
-}
+//             return Self {
+//                 .gpa = gpa,
+//                 .queue = queue,
+//                 ._is_initilized = true
+//             };
+//         }
 
-pub fn create_command_register(command_types: []const type) type
+//         pub fn append(self: *Self, command: anytype) !void
+//         {   
+//             try self.queue.append(command);
+//         }
+
+//         pub fn pop(self: *Self) !void
+//         {   
+//             try self.queue.pop();
+//         }
+
+//         pub fn deinit(self: *Self) void
+//         {
+//             self.queue.deinit();
+
+//             if (self.gpa.deinit() == .leak) 
+//             {
+//                 Logger.err("Memory Leak in CommandQueue: {}", .{ @TypeOf(self.queue) });
+//             }
+//         }
+//     };
+// }
+
+// pub fn CommandQueues(comptime command_types: []const type) type
+// {
+//     comptime var fields: [command_types.len]std.builtin.Type.StructField = undefined;
+
+//     inline for (command_types, 0..) |command_type, i| 
+//     {
+//         if (validateCommand(command_type))
+//         {
+//             const queue_type = CommandQueue(command_type);
+
+//             const command_queue = std.builtin.Type.StructField {
+//                 .name = command_type.queueName(),
+//                 .type = queue_type,
+//                 .default_value_ptr = null,
+//                 .is_comptime = false,
+//                 .alignment = @alignOf(queue_type),
+//             };
+
+//             fields[i] = command_queue;
+//         }
+//     }
+
+//     const queues = @Type(.{            
+//         .@"struct" = .{
+//             .layout = .auto,
+//             .fields = &fields,
+//             .is_tuple = false,
+//             .decls = &[_]std.builtin.Type.Declaration{},
+            
+//         },
+//     });
+
+//     return queues;
+// }
+
+pub fn validateCommand(T: type) bool
 {
-    var struct_fields: [command_types.len]std.builtin.Type.StructField = undefined;
-    inline for (command_types, 0..) |command_type, i| 
+    const type_info = @typeInfo(T);
+
+    var id = false;
+    var queue_name = false;
+
+    if (type_info == .@"struct")
     {
-        struct_fields[i] = std.builtin.Type.StructField {
-            .name = command_type.handle,
-            .type = std.AutoArrayHashMap(u64, comptime command_type),
-            .default_value_ptr = null,
-            .is_comptime = false,
-            .alignment = @alignOf(command_type),
-        };
+        const info = type_info.@"struct";
+
+        inline for (info.fields) |field|
+        {
+            if (std.mem.eql(u8, field.name, "id") and field.type == ?CommandId)
+            {
+                id = true;
+            }  
+        }
+
+        inline for (info.decls) |decl|
+        {
+            if (std.mem.eql(u8, decl.name, "queueName"))
+            {
+                queue_name = true;
+            }  
+        }
     }
 
-    const Entries: type = @Type(.{            
-        .@"struct" = .{
-            .layout = .auto,
-            .fields = &struct_fields,
-            .is_tuple = false,
-            .decls = &[_]std.builtin.Type.Declaration{},
-            
-        },
-    });
+    if (!id) { @compileError("Command does not implement filed id: ?CommandId"); }
+    if (!queue_name) { @compileError("Command does not implement fn queueName() [:0] const u8"); }
 
-    const CommandRegister = struct 
-    {
-        const Self = @This();        
-        const cmd_types = command_types;
+    if (queue_name and id) return true;
 
-        entries: Entries,
-
-        pub fn new(allocator: *const std.mem.Allocator) Self 
-        {
-            var entries: Entries = undefined;
-
-            inline for (Self.cmd_types) |command_type| 
-            {
-                @field(entries,  try strings.to_lower_case(command_type.handle)) = std.AutoArrayHashMap(u64, command_type).init(allocator.*);
-            }
-
-            return Self 
-            {                
-                .entries = entries,
-            };
-        }
-
-        pub fn deinit(self: *Self) void 
-        {
-            inline for (cmd_types) |command_type| 
-            {
-                @field(self.entries, command_type.handle).deinit();
-            }
-        }
-    };
-
-    return CommandRegister;
+    return false;
 }

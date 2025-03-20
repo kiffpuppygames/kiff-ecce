@@ -10,5 +10,5 @@ pub const components = struct
 
 pub const commands = struct 
 {
-    pub const create_command = @import("commands.zig").create_command;
+    pub const Command = @import("commands.zig").Command;
 };
