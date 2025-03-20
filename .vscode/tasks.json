@@ -16,6 +16,7 @@
             },
             "group": {
                 "kind": "build",
+                "isDefault": true            
             },
             "problemMatcher": [ "$zig" ]
         },
@@ -34,8 +35,7 @@
                 "cwd": "${workspaceFolder}"
             },
             "group": {
-                "kind": "build",                
-                //"isDefault": true
+                "kind": "test"
             },
             "problemMatcher": [ "$zig" ]
         }

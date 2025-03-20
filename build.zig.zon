@@ -1,8 +1,13 @@
 .{
-    .name = "kiff_ecce",
+    .name = .kiff_ecce,
     .version = "0.1.0",
     .fingerprint = 0x4e72a23e7e04d62f,
-    .dependencies = .{ },
+    .dependencies = .{ 
+        .kiff_common = .{
+            .url = "https://github.com/kiffpuppygames/kiff-common/archive/c51ae82a08ff90b9b719cae7a566e109e1900ad2.tar.gz",
+            .hash = "kiff_common-0.0.0-GtISGCwyAACCCQViPYSfrQhIqEX1F2AFoqMPKJP8r3G5"
+        }
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",

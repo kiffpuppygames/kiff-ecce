@@ -5,7 +5,7 @@
             "name": "Debug",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/zig-out/bin/kiff-ecce.exe",
+            "program": "${workspaceFolder}/zig-out/bin/kiff_ecce",
             "args": [],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "build",
