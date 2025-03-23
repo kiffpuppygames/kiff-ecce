@@ -10,11 +10,12 @@ pub fn build(b: *std.Build) void {
         
     });
 
-    _ = b.addModule("kiff_ecce", .{
+    const lib = b.addModule("kiff_ecce", .{
         .target = target,
         .optimize = optimize,
         .root_source_file = b.path("src/root.zig"),
     });
+    lib.addImport("kiff_common", kiff_common.module("kiff_common"));
 
     const exe_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),

@@ -4,94 +4,107 @@ const strings = @import("strings.zig");
 const ids = @import("ids.zig");
 const ecce = @import("ecce.zig");
 
-const Logger = @import("kiff_common").Logger;
+const kiff_common = @import("kiff_common");
+const Logger = kiff_common.Logger;
 
 pub const CommandId = u64;
 pub const CommandHandler = *fn(world: *anyopaque, cmd_type: type) void;
 
-pub const CommandCategory = enum(u64) 
+pub const Category = enum 
 {
-    BatchCommand,
-    TargetCommand,
+    batch_command,
+    target_command,
 };
 
-// pub fn CommandQueue(commands: type) type
-// {
-//     return struct 
-//     {
-//         const Self = @This();        
-        
-//         gpa: std.heap.GeneralPurposeAllocator(.{}),
-//         queue: std.ArrayList(commands),
-//         _is_initilized: bool = false,
+pub const BaseCommand = struct 
+{    
+    _id: ?CommandId = null,
 
-//         pub fn init() Self
-//         {
-//             const queue = 
+    // pub fn handle(self: *const BaseCommand, allocator: std.mem.Allocator) !void 
+    // {
+    //     const name = world.component_stores.get(PersonComponent.tag).?.get(self.person_to_greet).?.personComponent.name;
+    //     var str = try StringUnmanaged.build(allocator, self.greeting, .{ name });
+    //     defer str.deinit(allocator);
+    //     Logger.info("{s}", .{ str.chars.items });
+    // }
+};
 
-//             return Self {
-//                 .gpa = gpa,
-//                 .queue = queue,
-//                 ._is_initilized = true
-//             };
-//         }
+pub fn generateCommandTag(comptime command_data_types: []const type) type 
+{
+    var fields: [command_data_types.len]std.builtin.Type.EnumField = undefined;
 
-//         pub fn append(self: *Self, command: anytype) !void
-//         {   
-//             try self.queue.append(command);
-//         }
+    for (command_data_types, 0..) |cmd_data_type, i| 
+    {
+        const name = @typeName(cmd_data_type);
+        const start_index = std.mem.lastIndexOf(u8, name, ".").? + 1;
+        var name_arr: [name.len - start_index - 4:0]u8 = undefined;
+        std.mem.copyBackwards(u8, &name_arr, name[start_index..name.len - 4]);
+        name_arr[0] = std.ascii.toLower(name_arr[0]); 
 
-//         pub fn pop(self: *Self) !void
-//         {   
-//             try self.queue.pop();
-//         }
+        fields[i] = std.builtin.Type.EnumField {
+            .name = &name_arr,
+            .value = i
+        };
+    }
 
-//         pub fn deinit(self: *Self) void
-//         {
-//             self.queue.deinit();
+    return @Type(.{ 
+        .@"enum" = .{
+            .fields = &fields,
+            .tag_type = u64,
+            .decls = &.{},
+            .is_exhaustive = true
+        } 
+    });
+}
 
-//             if (self.gpa.deinit() == .leak) 
-//             {
-//                 Logger.err("Memory Leak in CommandQueue: {}", .{ @TypeOf(self.queue) });
-//             }
-//         }
-//     };
-// }
+pub fn generateCommands(command_data_types: []const type, tags: type) type 
+{
+    var fields: [command_data_types.len]std.builtin.Type.UnionField = undefined;
 
-// pub fn CommandQueues(comptime command_types: []const type) type
-// {
-//     comptime var fields: [command_types.len]std.builtin.Type.StructField = undefined;
+    for (command_data_types, 0..) |cmd_data_type, i| 
+    {
+        const tag: tags = @enumFromInt(i);
+        const new_cmd = ceateCommand(cmd_data_type, tag);
 
-//     inline for (command_types, 0..) |command_type, i| 
-//     {
-//         if (validateCommand(command_type))
-//         {
-//             const queue_type = CommandQueue(command_type);
+        const name = @typeName(new_cmd);
+        const start_index = std.mem.lastIndexOf(u8, name, ".").? + 1;
+        var name_arr: [name.len - start_index - 1:0]u8 = undefined;
+        std.mem.copyBackwards(u8, &name_arr, name[start_index..name.len - 1]);
+        //name_arr[0] = std.ascii.toUpper(name_arr[0]); 
+        //@compileLog(name_arr);
+        fields[i] = std.builtin.Type.UnionField {
+            .name = &name_arr,
+            .type = new_cmd,
+            .alignment = @alignOf(new_cmd),
+        };
+    }
 
-//             const command_queue = std.builtin.Type.StructField {
-//                 .name = command_type.queueName(),
-//                 .type = queue_type,
-//                 .default_value_ptr = null,
-//                 .is_comptime = false,
-//                 .alignment = @alignOf(queue_type),
-//             };
+    return @Type(.{ 
+        .@"union" = .{
+            .layout = .auto,
+            .tag_type = tags,
+            .fields = &fields,
+            .decls = &.{},
+        } 
+    });
+}
 
-//             fields[i] = command_queue;
-//         }
-//     }
+fn ceateCommand(data: type, tag: anytype) type
+{
+    const data_info = @typeInfo(data);
+    const base_info = @typeInfo(BaseCommand);
 
-//     const queues = @Type(.{            
-//         .@"struct" = .{
-//             .layout = .auto,
-//             .fields = &fields,
-//             .is_tuple = false,
-//             .decls = &[_]std.builtin.Type.Declaration{},
-            
-//         },
-//     });
+    const tag_type = @TypeOf(tag);
+    const tag_field = std.builtin.Type.StructField { .name = "_tag", .is_comptime = false, .default_value_ptr = &tag, .type = tag_type, .alignment = @alignOf(tag_type)};
 
-//     return queues;
-// }
+    const fields = base_info.@"struct".fields ++ data_info.@"struct".fields ++ .{ tag_field };
+    
+    var new_struct = base_info;
+
+    new_struct.@"struct".fields = fields;
+
+    return @Type(new_struct);
+}
 
 pub fn validateCommand(T: type) bool
 {

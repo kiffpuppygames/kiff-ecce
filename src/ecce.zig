@@ -11,25 +11,49 @@ pub const EcceError = error {
     UnionFieldNotFound
 };
 
-pub fn ECCE(comptime command_types: type, comptime component_types: type, comptime component_tags: type) type 
+pub const ECCE = struct {
+    World: type,
+    Command: type,
+    Command_tag: type
+};
+
+pub fn createEcce(comptime command_data_types: []const type, comptime component_types: type, comptime component_tags: type) ECCE
 { 
-    return struct {
+    const CommandTag = commands.generateCommandTag(command_data_types);
+    const Command = commands.generateCommands(command_data_types, CommandTag);
+
+    const World = struct 
+    {
+        var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
+
         const Self = @This();
-        const Command = command_types;
-        const Component = component_types;
-        const ComponentTag = component_tags;
+
+        
+        pub const Component = component_types;
+        pub const ComponentTag = component_tags;
 
         entities: std.AutoArrayHashMap(EntityId, Entity()) = undefined,
-        command_queues: std.AutoArrayHashMap(commands.CommandCategory, std.ArrayList(Command)) = undefined,
+        command_queues: std.AutoArrayHashMap(commands.Category, std.ArrayList(Command)) = undefined,
         component_stores: std.AutoArrayHashMap(ComponentTag, std.AutoArrayHashMap(components.ComponentId, Component)) = undefined,
         _next_entity_id: EntityId = 0,
         _next_command_id: commands.CommandId = 0,
         _next_component_id: u64 = 0,
 
+        pub fn Entity() type {
+            return struct {
+                id: EntityId = undefined,
+                component_refs: std.ArrayList(EntityComponentRefrence()) = undefined
+            }; 
+        }
+
+        pub fn EntityComponentRefrence() type {
+            return struct { component_tag: ComponentTag, component_id: components.ComponentId };
+        }
+
         pub fn init(allocator: std.mem.Allocator) !Self
         {
-            var cmd_queues = std.AutoArrayHashMap(commands.CommandCategory, std.ArrayList(Command)).init(allocator);
-            inline for (std.meta.fields(commands.CommandCategory)) |field| {
+            var cmd_queues = std.AutoArrayHashMap(commands.Category, std.ArrayList(Command)).init(allocator);
+            inline for (std.meta.fields(commands.Category)) |field| {
                 const value = std.ArrayList(Command).init(allocator);
                 try cmd_queues.put(@enumFromInt(field.value), value);
                 Logger.debug("{s} queue initilized", .{ field.name });
@@ -46,17 +70,6 @@ pub fn ECCE(comptime command_types: type, comptime component_types: type, compti
                 .command_queues = cmd_queues,
                 .component_stores = comp_stores,
             };
-        }
-
-        pub fn Entity() type {
-            return struct {
-                id: EntityId = undefined,
-                component_refs: std.ArrayList(EntityComponentRefrence()) = undefined
-            }; 
-        }
-
-        pub fn EntityComponentRefrence() type {
-            return struct { component_tag: ComponentTag, component_id: components.ComponentId };
         }
 
         pub fn dispatchCommand(self: *Self, command: anytype) !void 
@@ -170,7 +183,7 @@ pub fn ECCE(comptime command_types: type, comptime component_types: type, compti
 
         pub fn deinit(self: *Self) void
         {
-            inline for (std.meta.tags(commands.CommandCategory)) |cat| {    
+            inline for (std.meta.tags(commands.Category)) |cat| {    
                 Logger.debug("Cleaning Up {s} queue, has {d} unhandled commands", . { @tagName(cat), self.command_queues.get(cat).?.items.len });            
                 self.command_queues.getPtr(cat).?.deinit();
             }
@@ -191,6 +204,8 @@ pub fn ECCE(comptime command_types: type, comptime component_types: type, compti
             self.entities.deinit();    
         }
     };
+
+    return ECCE { .World = World, .Command = Command, .Command_tag = CommandTag };
 }
 
 // pub fn create_ecce(component_types: []const type, command_union: type) type
